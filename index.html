@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo de Sensor DHT11</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f9; color: #333; }
+        h1 { color: #2c3e50; text-align: center; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .status { font-weight: bold; color: #27ae60; text-align: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Panel de Control - Datos del Sensor</h1>
+    <div class="status">Conectado en tiempo real a Firebase Database</div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>DÍA</th>
+                <th>HORA</th>
+                <th>TEMPERATURA</th>
+                <th>HUMEDAD</th>
+            </tr>
+        </thead>
+        <tbody id="data-table-body">
+            <tr>
+                <td colspan="4" style="text-align:center;">Esperando datos de Firebase...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Cargar SDK de Firebase v9 (módulos de compatibilidad clásica) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+    // Configuración con su enlace de base de datos integrado
+    const firebaseConfig = {
+        databaseURL: "https://monitoreo-de-temperatura-f5496-default-rtdb.firebaseio.com/",
+        projectId: "monitoreo-de-temperatura-f5496"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Leer datos del nodo 'sensor_data', ordenados por los últimos registros
+    const sensorRef = database.ref('sensor_data').orderByChild('timestamp').limitToLast(50);
+
+    sensorRef.on('value', (snapshot) => {
+        const tbody = document.getElementById('data-table-body');
+        tbody.innerHTML = ''; // Limpiar tabla anterior
+
+        if (snapshot.exists()) {
+            const list = [];
+            snapshot.forEach((childSnapshot) => {
+                list.push(childSnapshot.val());
+            });
+            
+            // Invertir orden para que lo más nuevo salga arriba de la tabla
+            list.reverse();
+
+            list.forEach((data) => {
+                const row = `<tr>
+                    <td>${data.DIA || 'N/A'}</td>
+                    <td>${data.HORA || 'N/A'}</td>
+                    <td>${data.TEMPERATURA || 'N/A'}</td>
+                    <td>${data.HUMEDAD || 'N/A'}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay datos registrados en el nodo "sensor_data".</td></tr>';
+        }
+    });
+</script>
+</body>
+</html>
